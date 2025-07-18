@@ -22,7 +22,6 @@ const loginRouter = require('./api/login');
 app.use('/api/login', loginRouter);
 
 // Agrupar todos los endpoints de activities bajo /api/activities
-const express = require('express');
 const activitiesRouter = express.Router();
 
 // Endpoint para eliminar actividad (admin puede eliminar cualquiera, usuario solo las suyas)
