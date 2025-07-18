@@ -11,7 +11,8 @@ function Modal({ open, onClose, children }) {
   );
 }
 import { useState, useEffect } from 'react';
-const API = import.meta.env.VITE_API_URL;
+let API = import.meta.env.VITE_API_URL;
+if (API && !API.endsWith('/')) API = API + '/';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import './App.css';

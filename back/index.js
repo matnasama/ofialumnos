@@ -21,26 +21,12 @@ const pool = new Pool({
 const loginRouter = require('./api/login');
 app.use('/api/login', loginRouter);
 
-// Endpoint de login
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const result = await pool.query(
-      'SELECT id, username, role FROM users WHERE username = $1 AND password = $2',
-      [username, password]
-    );
-    if (result.rows.length === 1) {
-      res.json(result.rows[0]);
-    } else {
-      res.status(401).json({ error: 'Credenciales incorrectas' });
-    }
-  } catch (err) {
-    res.status(500).json({ error: 'Error en el servidor' });
-  }
-});
+// Agrupar todos los endpoints de activities bajo /api/activities
+const express = require('express');
+const activitiesRouter = express.Router();
 
 // Endpoint para eliminar actividad (admin puede eliminar cualquiera, usuario solo las suyas)
-app.delete('/activities/:id', async (req, res) => {
+activitiesRouter.delete('/:id', async (req, res) => {
   // LOGS DETALLADOS PARA DEBUG
   console.log('DELETE /activities/:id llamado');
   console.log('req.url:', req.url);
@@ -82,7 +68,7 @@ app.delete('/activities/:id', async (req, res) => {
 });
 
 // Endpoint para crear nueva actividad
-app.post('/activities', async (req, res) => {
+activitiesRouter.post('/', async (req, res) => {
   const { userId, titulo, descripcion, fecha_inicio, fecha_fin } = req.body;
   if (!userId || !titulo || !fecha_inicio) {
     return res.status(400).json({ error: 'Faltan datos obligatorios' });
@@ -99,7 +85,7 @@ app.post('/activities', async (req, res) => {
 });
 
 // Endpoint para obtener todas las actividades activas
-app.get('/activities', async (req, res) => {
+activitiesRouter.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT a.id, a.user_id, u.username, a.titulo, a.descripcion, a.fecha_inicio, a.fecha_fin, a.created_at
@@ -115,7 +101,7 @@ app.get('/activities', async (req, res) => {
 });
 
 // Endpoint para editar actividad con historial (marca la anterior como inactiva y crea una nueva)
-app.post('/activities/:id/edit', async (req, res) => {
+activitiesRouter.post('/:id/edit', async (req, res) => {
   const activityId = req.params.id;
   const { userId, titulo, descripcion, fecha_inicio } = req.body;
   if (!userId || !titulo || !fecha_inicio) {
@@ -158,7 +144,7 @@ app.post('/activities/:id/edit', async (req, res) => {
 });
 
 // Endpoint para obtener historial de una actividad (todas las versiones)
-app.get('/activities/:id/history', async (req, res) => {
+activitiesRouter.get('/:id/history', async (req, res) => {
   const activityId = req.params.id;
   try {
     // Buscar todas las versiones con el mismo parent_id o el id original
@@ -176,6 +162,9 @@ app.get('/activities/:id/history', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener historial' });
   }
 });
+
+// Montar el router de activities en /api/activities
+app.use('/api/activities', activitiesRouter);
 
 const PORT = 3001;
 app.listen(PORT, () => {
