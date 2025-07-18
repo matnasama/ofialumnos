@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
 const pool = new Pool({
   host: process.env.PGHOST,
   database: process.env.PGDATABASE,
@@ -15,6 +16,10 @@ const pool = new Pool({
   ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
   channelBinding: process.env.PGCHANNELBINDING || undefined
 });
+
+// Importar y montar el router de login
+const loginRouter = require('./api/login');
+app.use('/api/login', loginRouter);
 
 // Endpoint de login
 app.post('/login', async (req, res) => {

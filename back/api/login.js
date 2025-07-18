@@ -1,3 +1,5 @@
+const express = require('express');
+const router = express.Router();
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -9,10 +11,8 @@ const pool = new Pool({
   channelBinding: process.env.PGCHANNELBINDING || undefined
 });
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido' });
-  }
+// POST /api/login
+router.post('/', async (req, res) => {
   const { username, password } = req.body;
   try {
     const result = await pool.query(
@@ -27,4 +27,6 @@ export default async function handler(req, res) {
   } catch (err) {
     res.status(500).json({ error: 'Error en el servidor' });
   }
-}
+});
+
+module.exports = router;
