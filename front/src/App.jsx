@@ -54,6 +54,15 @@ function App() {
   const [grillasModalData, setGrillasModalData] = useState([]);
   const [grillasModalLoading, setGrillasModalLoading] = useState(false);
   const [grillasModalError, setGrillasModalError] = useState(null);
+  // Estado de usuario autenticado
+  const [user, setUser] = useState(null);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginError, setLoginError] = useState(null);
+  // Estado para historial de actividades
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
   const theme = useSystemTheme();
   // Helpers para calendario
   const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -75,9 +84,19 @@ function App() {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     setSelectedDate(dateStr);
   }
-  // Actividades del día seleccionado (comparar con formato dd/mm/yyyy)
-  const selectedDateStr = selectedDate ? selectedDate.split('-').reverse().join('/') : null;
-  const activitiesForDate = selectedDateStr ? activities.filter(a => a.date === selectedDateStr) : [];
+  // Actividades del día seleccionado (comparar con formato yyyy-mm-dd)
+  const activitiesForDate = selectedDate
+    ? activities.filter(a => {
+        // selectedDate es yyyy-mm-dd, a.date es yyyy-mm-dd
+        // Si a.date viene en dd/mm/yyyy, convertir a yyyy-mm-dd
+        let actDate = a.date;
+        if (actDate && actDate.includes('/')) {
+          const [d, m, y] = actDate.split('/');
+          actDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+        return actDate === selectedDate;
+      })
+    : [];
   // Render principal
   // Construir matriz de semanas para el mes
   const daysInMonth = getDaysInMonth(month, year);
@@ -97,40 +116,165 @@ function App() {
   }
   // Formulario para agregar actividad (debajo del calendario)
   const [form, setForm] = useState({ title: '', description: '', to: '', periodo: false });
-  function handleAddActivity(e) {
+  async function handleAddActivity(e) {
     e.preventDefault();
+    if (!user) {
+      alert('Inicia sesión para agregar actividades');
+      return;
+    }
     if (!form.title || !selectedDate) return;
     const fromDate = new Date(selectedDate);
     if (form.periodo && form.to) {
       const toDate = new Date(form.to);
-      const acts = [];
       for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
-        const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-        acts.push({
-          id: Date.now() + Math.random(),
-          title: form.title,
-          description: form.description,
-          date: dateStr
+        const fechaISO = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+        await fetch('http://localhost:3001/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            titulo: form.title,
+            descripcion: form.description,
+            fecha_inicio: fechaISO,
+            fecha_fin: null
+          })
         });
       }
-      setActivities(actsOld => [...actsOld, ...acts]);
     } else {
-      const dateStr = selectedDate.split('-').reverse().join('/');
-      setActivities(acts => [
-        ...acts,
-        {
-          id: Date.now(),
-          title: form.title,
-          description: form.description,
-          date: dateStr
-        }
-      ]);
+      const [a, m, d] = selectedDate.split('-');
+      const fechaISO = `${a}-${m}-${d}`;
+      await fetch('http://localhost:3001/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          titulo: form.title,
+          descripcion: form.description,
+          fecha_inicio: fechaISO,
+          fecha_fin: null
+        })
+      });
     }
     setForm({ title: '', description: '', to: '', periodo: false });
+    await fetchActivities(); // Recargar actividades después de agregar
+  }
+  // Login
+  async function handleLogin(e) {
+    e.preventDefault();
+    setLoginError(null);
+    try {
+      const res = await fetch('http://localhost:3001/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginForm)
+      });
+      if (!res.ok) throw new Error('Credenciales incorrectas');
+      const data = await res.json();
+      setUser(data);
+      localStorage.setItem('user', JSON.stringify(data)); // Guardar sesión
+      setLoginForm({ username: '', password: '' });
+    } catch (err) {
+      setLoginError('Usuario o contraseña incorrectos');
+    }
+  }
+  function handleLogout() {
+    setUser(null);
+    localStorage.removeItem('user'); // Limpiar sesión
+  }
+  // Restaurar usuario desde localStorage al iniciar
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+  // Cargar actividades desde la base de datos al iniciar
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+  // Eliminar actividad (admin o usuario dueño)
+  async function handleDeleteActivity(id) {
+    if (!user) return;
+    const url = `http://localhost:3001/activities/${id}?userId=${encodeURIComponent(user.id)}`;
+    console.log('DELETE url:', url, 'user.id:', user.id, 'typeof:', typeof user.id);
+    const res = await fetch(url, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      alert('Error al eliminar: ' + text);
+    }
+    await fetchActivities();
+    setEditingId(null);
+  }
+  // Editar actividad con historial
+  async function handleSaveEditActivity(id, date) {
+    if (!user) return;
+    // Llamar al endpoint de edición (debe implementarse en backend)
+    await fetch(`http://localhost:3001/activities/${id}/edit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        titulo: editForm.title,
+        descripcion: editForm.description,
+        fecha_inicio: date.split('/').reverse().join('-')
+      })
+    });
+    setEditingId(null);
+    await fetchActivities(); // Recargar actividades después de editar
+  }
+  // Cargar actividades desde la base de datos
+  async function fetchActivities() {
+    try {
+      const res = await fetch('http://localhost:3001/activities');
+      const data = await res.json();
+      const acts = data.map(a => ({
+        id: a.id,
+        title: a.titulo,
+        description: a.descripcion,
+        date: a.fecha_inicio ? a.fecha_inicio.slice(0, 10) : '', // yyyy-mm-dd
+        user_id: a.user_id,
+        username: a.username
+      }));
+      setActivities(acts);
+    } catch {
+      setActivities([]);
+    }
   }
   // Render
   return (
     <div style={{ display: 'flex', flexDirection: 'row', height: '93vh', minHeight: 500, minWidth: '98vw', background: theme === 'dark' ? '#181a1b' : '#f7f7f7', color: theme === 'dark' ? '#f7f7f7' : '#222', overflow: 'hidden' }}>
+      {/* Login arriba a la derecha */}
+      <div style={{ position: 'fixed', top: 10, right: 20, zIndex: 2000 }}>
+        {user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontWeight: 600, color: '#1976d2' }}>{user.username} ({user.id})</span>
+            <button onClick={handleLogout} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#1976d2', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Salir</button>
+          </div>
+        ) : (
+          <form onSubmit={handleLogin} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', borderRadius: 8, boxShadow: '0 1px 6px #0002', padding: '6px 12px' }}>
+            <input
+              type="text"
+              placeholder="Usuario"
+              value={loginForm.username}
+              onChange={e => setLoginForm(f => ({ ...f, username: e.target.value }))}
+              style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #bbb', fontSize: 13 }}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Contraseña"
+              value={loginForm.password}
+              onChange={e => setLoginForm(f => ({ ...f, password: e.target.value }))}
+              style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #bbb', fontSize: 13 }}
+              required
+            />
+            <button type="submit" style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#1976d2', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Ingresar</button>
+          </form>
+        )}
+        {loginError && <div style={{ color: 'red', fontSize: 13, marginTop: 4 }}>{loginError}</div>}
+      </div>
       {/* Calendario y form */}
       <div style={{ width: 420, minWidth: 340, maxWidth: 550, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', height: '100%' }}>
         {/* Bloque calendario con altura fija */}
@@ -158,11 +302,9 @@ function App() {
                 <tr key={wIdx}>
                   {week.map((day, dIdx) => {
                     if (!day) return <td key={dIdx} style={{ height: 40 }} />;
-                    const dateStr = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
-                    const isSelected = selectedDate && selectedDate.split('-').reverse().join('/') === dateStr;
-                    // Badge de cantidad de actividades
+                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                    const isSelected = selectedDate === dateStr;
                     const actsCount = activities.filter(a => a.date === dateStr).length;
-                    // ...existing code...
                     return (
                       <td key={dIdx}
                         style={{
@@ -212,7 +354,7 @@ function App() {
               placeholder="Título"
               style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #bbb', fontSize: 13 }}
               required
-              disabled={!selectedDate}
+              disabled={!selectedDate || !user}
             />
             <textarea
               name="description"
@@ -220,7 +362,7 @@ function App() {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               placeholder="Descripción"
               style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #bbb', fontSize: 13, minHeight: 40 }}
-              disabled={!selectedDate}
+              disabled={!selectedDate || !user}
             />
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2, justifyContent: 'center', width: '100%' }}>
               <input
@@ -229,7 +371,7 @@ function App() {
                 value={selectedDate || ''}
                 onChange={e => setSelectedDate(e.target.value)}
                 style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #bbb', fontSize: 12, width: 140, minWidth: 70, maxWidth: 180, textAlign: 'center', margin: '0 auto' }}
-                disabled={!selectedDate}
+                disabled={!selectedDate || !user}
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <input
@@ -237,7 +379,7 @@ function App() {
                   checked={form.periodo}
                   onChange={e => setForm(f => ({ ...f, periodo: e.target.checked }))}
                   style={{ marginRight: 2, marginLeft: 2 }}
-                  disabled={!selectedDate}
+                  disabled={!selectedDate || !user}
                 />
                 <span style={{ fontSize: 12, fontWeight: 400, marginRight: 3 }}>Periodo</span>
                 <input
@@ -248,11 +390,11 @@ function App() {
                   style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #bbb', fontSize: 12, width: 140, minWidth: 70, maxWidth: 180, textAlign: 'center', margin: '0 auto' }}
                   min={selectedDate}
                   required={form.periodo}
-                  disabled={!form.periodo || !selectedDate}
+                  disabled={!form.periodo || !selectedDate || !user}
                 />
               </div>
             </div>
-            <button type="submit" style={{ padding: '6px 0', borderRadius: 6, border: 'none', background: '#1976d2', color: '#fff', fontWeight: 700, fontSize: 14, cursor: selectedDate ? 'pointer' : 'not-allowed', marginTop: 6 }} disabled={!selectedDate}>Agregar</button>
+            <button type="submit" style={{ padding: '6px 0', borderRadius: 6, border: 'none', background: '#1976d2', color: '#fff', fontWeight: 700, fontSize: 14, cursor: selectedDate && user ? 'pointer' : 'not-allowed', marginTop: 6 }} disabled={!selectedDate || !user}>Agregar</button>
           </form>
         </div>
       </div>
@@ -272,7 +414,6 @@ function App() {
                 return `${diaSemana} ${d.toString().padStart(2, '0')}/${m.toString().padStart(2, '0')}/${a}`;
               })()}
             </div>
-            {/* ...existing code... */}
             {/* Mostrar actividades */}
             {activitiesForDate.length > 0 ? (
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, textAlign: 'left' }}>
@@ -285,20 +426,33 @@ function App() {
                     editForm={editForm}
                     handleStartEdit={a => {
                       setEditingId(a.id);
-                      setEditForm({ title: a.title, description: a.description, hour: a.hour?.split(':')[0] || '', minute: a.hour?.split(':')[1] || '' });
+                      setEditForm({ title: a.title, description: a.description });
                     }}
-                    handleDeleteActivity={id => {
-                      setActivities(acts => acts.filter(a => a.id !== id));
-                      if (editingId === id) setEditingId(null);
-                    }}
+                    handleDeleteActivity={handleDeleteActivity}
                     handleCancelEdit={() => setEditingId(null)}
                     handleSaveEdit={(id, date) => {
-                      setActivities(acts => acts.map(a => a.id === id ? { ...a, title: editForm.title, description: editForm.description, hour: editForm.hour && editForm.minute ? `${editForm.hour}:${editForm.minute}` : '', date } : a));
+                      setActivities(acts => acts.map(a => a.id === id ? { ...a, title: editForm.title, description: editForm.description, date } : a));
                       setEditingId(null);
                     }}
                     setEditForm={setEditForm}
-                    selectedDate={selectedDate.split('-').reverse().join('/')}
+                    selectedDate={selectedDate ? selectedDate.split('-').reverse().join('/') : ''}
                     activities={activities}
+                    user={user}
+                    handleSaveEditActivity={handleSaveEditActivity}
+                    handleShowHistory={async (id) => {
+                      setHistoryModalOpen(true);
+                      setHistoryLoading(true);
+                      setHistoryError(null);
+                      try {
+                        const res = await fetch(`http://localhost:3001/activities/${id}/history`);
+                        if (!res.ok) throw new Error('Error al obtener historial');
+                        const data = await res.json();
+                        setHistoryData(data);
+                      } catch {
+                        setHistoryError('No se pudo obtener el historial');
+                      }
+                      setHistoryLoading(false);
+                    }}
                   />
                 ))}
               </ul>
@@ -563,6 +717,29 @@ function App() {
             </div>
           )}
         </Modal>
+        {/* Modal para historial de versiones */}
+        <Modal open={historyModalOpen} onClose={() => setHistoryModalOpen(false)}>
+          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Historial de versiones</h2>
+          {historyLoading && <div style={{ textAlign: 'center', margin: 18 }}>Cargando...</div>}
+          {historyError && <div style={{ color: '#d32f2f', textAlign: 'center', margin: 18 }}>{historyError}</div>}
+          {!historyLoading && !historyError && historyData && historyData.length > 0 && (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {historyData.map((h, idx) => (
+                <li key={h.id} style={{ background: h.is_active ? '#e3f2fd' : '#eee', borderRadius: 8, marginBottom: 10, padding: 12, border: h.is_active ? '2px solid #1976d2' : '1px solid #bbb' }}>
+                  <div style={{ fontWeight: 700, color: '#1976d2', fontSize: 16 }}>{h.titulo}</div>
+                  <div style={{ fontSize: 14, color: '#333', marginBottom: 4 }}>{h.descripcion}</div>
+                  <div style={{ fontSize: 13, color: '#666' }}>Fecha: {h.fecha_inicio ? new Date(h.fecha_inicio).toLocaleDateString('es-AR') : ''}</div>
+                  <div style={{ fontSize: 13, color: '#666' }}>Creado: {h.created_at ? new Date(h.created_at).toLocaleString('es-AR', { hour12: false }) : ''}</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>Usuario: {h.username}</div>
+                  <div style={{ fontSize: 12, color: h.is_active ? '#388e3c' : '#b71c1c', fontWeight: 600 }}>{h.is_active ? 'Versión activa' : 'Versión anterior'}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {!historyLoading && !historyError && (!historyData || historyData.length === 0) && (
+            <div style={{ color: '#888', textAlign: 'center', margin: 18 }}>No hay historial para esta actividad.</div>
+          )}
+        </Modal>
       </div>
     </div>
   );
@@ -570,7 +747,7 @@ function App() {
 
 export default App;
 // Componente AccordionItem
-function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handleDeleteActivity, handleCancelEdit, handleSaveEdit, setEditForm, selectedDate, activities }) {
+function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handleDeleteActivity, handleCancelEdit, handleSaveEdit, setEditForm, selectedDate, activities, user, handleSaveEditActivity, handleShowHistory }) {
   const [open, setOpen] = useState(false);
   const isEditing = editingId === act.id;
   return (
@@ -581,9 +758,7 @@ function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handl
           if (!isEditing && !open) {
             setEditForm({
               title: act.title,
-              description: act.description,
-              hour: act.hour?.split(':')[0] || '',
-              minute: act.hour?.split(':')[1] || ''
+              description: act.description
             });
           }
         }}
@@ -608,7 +783,7 @@ function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handl
         <div style={{ padding: '10px 12px', borderTop: '1px solid #eee', color: theme === 'dark' ? '#f7f7f7' : '#222', fontSize: 15, position: 'relative', minHeight: 60 }}>
           {isEditing ? (
             <form
-              onSubmit={e => { e.preventDefault(); handleSaveEdit(act.id, selectedDate); }}
+              onSubmit={e => { e.preventDefault(); handleSaveEditActivity(act.id, selectedDate); }}
               style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
             >
               <input
@@ -618,6 +793,7 @@ function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handl
                 placeholder="Título"
                 style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #bbb', fontSize: 15 }}
                 required
+                disabled={!user}
               />
               <textarea
                 name="description"
@@ -625,42 +801,44 @@ function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handl
                 onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Descripción"
                 style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #bbb', fontSize: 15, minHeight: 48 }}
+                disabled={!user}
               />
-              {/* Línea de hora y minutos */}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  name="hour"
-                  value={editForm.hour}
-                  onChange={e => setEditForm(f => ({ ...f, hour: e.target.value.replace(/[^0-9]/g, '').slice(0,2) }))}
-                  placeholder="Hora"
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #bbb', fontSize: 15, width: 70 }}
-                />
-                <span style={{ alignSelf: 'center', fontSize: 15 }}>:</span>
-                <input
-                  name="minute"
-                  value={editForm.minute}
-                  onChange={e => setEditForm(f => ({ ...f, minute: e.target.value.replace(/[^0-9]/g, '').slice(0,2) }))}
-                  placeholder="Minutos"
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #bbb', fontSize: 15, width: 70 }}
-                />
-              </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="submit" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 18px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Guardar</button>
+                <button type="submit" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 18px', fontWeight: 700, fontSize: 15, cursor: user ? 'pointer' : 'not-allowed' }} disabled={!user}>Guardar</button>
                 <button type="button" onClick={handleCancelEdit} style={{ background: '#eee', color: '#222', border: 'none', borderRadius: 6, padding: '6px 18px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Cancelar</button>
               </div>
             </form>
           ) : (
             <>
-              {act.hour && act.hour !== '' ? <div style={{ marginBottom: 6, color: '#1976d2', fontWeight: 500 }}>⏰ {act.hour}</div> : null}
               <div style={{ wordBreak: 'break-word', overflowWrap: 'break-word', minWidth: 0 }}>{act.description}</div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 12 }}>
-                <button onClick={() => handleStartEdit(act)} title="Editar" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1976d2', fontSize: 22, display: 'flex', alignItems: 'center' }}>
-                  <EditIcon style={{ fontSize: 24, color: '#1976d2' }} />
-                </button>
-                <button onClick={() => handleDeleteActivity(act.id)} title="Eliminar" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#d32f2f', fontSize: 22, display: 'flex', alignItems: 'center' }}>
-                  <DeleteIcon style={{ fontSize: 24, color: '#d32f2f' }} />
-                </button>
+              <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>
+                {/* Solo mostrar user_id o username si hay usuario logueado */}
+                {user ? (act.user_id || act.username) : null}
+                {user && user.role === 'admin' && act.created_at && (
+                  <span style={{ marginLeft: 12, color: '#888' }}>
+                    <span style={{ fontWeight: 600 }}>Creado:</span> {new Date(act.created_at).toLocaleString('es-AR')}
+                  </span>
+                )}
               </div>
+              {user && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                  {(user.role === 'admin' || user.id === act.user_id) && (
+                    <button onClick={() => handleStartEdit(act)} title="Editar" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1976d2', fontSize: 22, display: 'flex', alignItems: 'center' }}>
+                      <EditIcon style={{ fontSize: 24, color: '#1976d2' }} />
+                    </button>
+                  )}
+                  {(user.role === 'admin' || user.id === act.user_id) && (
+                    <button onClick={() => handleDeleteActivity(act.id)} title="Eliminar" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#d32f2f', fontSize: 22, display: 'flex', alignItems: 'center' }}>
+                      <DeleteIcon style={{ fontSize: 24, color: '#d32f2f' }} />
+                    </button>
+                  )}
+                  {user.role === 'admin' && (
+                    <button onClick={() => handleShowHistory(act.id)} title="Ver historial" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#888', fontSize: 18, display: 'flex', alignItems: 'center', textDecoration: 'underline', marginLeft: 4 }}>
+                      Historial
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
