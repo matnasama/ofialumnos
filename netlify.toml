@@ -1,7 +1,8 @@
 # Netlify configuration for React + Vite frontend
 [build]
+  base = "front"
   command = "npm run build"
-  publish = "front/dist"
+  publish = "dist"
 
 # Si quieres definir variables de entorno:
 #[build.environment]
