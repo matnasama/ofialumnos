@@ -11,6 +11,7 @@ function Modal({ open, onClose, children }) {
   );
 }
 import { useState, useEffect } from 'react';
+const API = import.meta.env.VITE_API_URL;
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import './App.css';
@@ -33,6 +34,8 @@ const months = [
 
 function App() {
   // Modal formularios
+  // Estado para modal de exámenes finales
+  const [examenesModalOpen, setExamenesModalOpen] = useState(false);
   const [formulariosOpen, setFormulariosOpen] = useState(false);
   const [formularios, setFormularios] = useState([]);
   const [formulariosLoading, setFormulariosLoading] = useState(false);
@@ -128,7 +131,7 @@ function App() {
       const toDate = new Date(form.to);
       for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
         const fechaISO = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-        await fetch('http://localhost:3001/activities', {
+        await fetch(`${API}activities`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -143,7 +146,7 @@ function App() {
     } else {
       const [a, m, d] = selectedDate.split('-');
       const fechaISO = `${a}-${m}-${d}`;
-      await fetch('http://localhost:3001/activities', {
+      await fetch(`${API}activities`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -163,7 +166,7 @@ function App() {
     e.preventDefault();
     setLoginError(null);
     try {
-      const res = await fetch('http://localhost:3001/login', {
+      const res = await fetch(`${API}login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginForm)
@@ -195,7 +198,7 @@ function App() {
   // Eliminar actividad (admin o usuario dueño)
   async function handleDeleteActivity(id) {
     if (!user) return;
-    const url = `http://localhost:3001/activities/${id}?userId=${encodeURIComponent(user.id)}`;
+    const url = `${API}activities/${id}?userId=${encodeURIComponent(user.id)}`;
     console.log('DELETE url:', url, 'user.id:', user.id, 'typeof:', typeof user.id);
     const res = await fetch(url, {
       method: 'DELETE'
@@ -211,7 +214,7 @@ function App() {
   async function handleSaveEditActivity(id, date) {
     if (!user) return;
     // Llamar al endpoint de edición (debe implementarse en backend)
-    await fetch(`http://localhost:3001/activities/${id}/edit`, {
+    await fetch(`${API}activities/${id}/edit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -227,7 +230,7 @@ function App() {
   // Cargar actividades desde la base de datos
   async function fetchActivities() {
     try {
-      const res = await fetch('http://localhost:3001/activities');
+      const res = await fetch(`${API}activities`);
       const data = await res.json();
       const acts = data.map(a => ({
         id: a.id,
@@ -276,10 +279,10 @@ function App() {
         {loginError && <div style={{ color: 'red', fontSize: 13, marginTop: 4 }}>{loginError}</div>}
       </div>
       {/* Calendario y form */}
-      <div style={{ width: 420, minWidth: 340, maxWidth: 550, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', height: '100%' }}>
+      <div style={{ width: 500, minWidth: 380, maxWidth: 650, padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', height: '100%' }}>
         {/* Bloque calendario con altura fija */}
-        <div style={{ width: '100%', maxWidth: 380, height: 340, background: theme === 'dark' ? '#181a1b' : '#f7f7f7', borderRadius: 16, boxShadow: theme === 'dark' ? '0 2px 12px #0006' : '0 2px 12px #0001', padding: '8px 0 10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 18 }}>
-          <h2 style={{ textAlign: 'center', fontSize: 22, marginBottom: 8 }}>Calendario {year}</h2>
+        <div style={{ width: '100%', maxWidth: 480, height: 340, background: theme === 'dark' ? '#181a1b' : '#f7f7f7', borderRadius: 16, boxShadow: theme === 'dark' ? '0 2px 12px #0006' : '0 2px 12px #0001', padding: '8px 0 10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 18 }}>
+        <h2 style={{ textAlign: 'center', fontSize: 22, marginBottom: 8 }}>Calendario {year}</h2>
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: 6, gap: 8 }}>
             <button onClick={handlePrevMonth} style={{ padding: '4px 10px', fontSize: 15, borderRadius: 6, border: '1px solid #ccc', background: theme === 'dark' ? '#23272f' : '#f5f5f5', color: theme === 'dark' ? '#f7f7f7' : '#222', cursor: 'pointer', width: 120 }}>
               &lt; {months[(month + 11) % 12]}
@@ -400,7 +403,7 @@ function App() {
       </div>
       {/* Panel lateral de actividades */}
       <div style={{ flex: 1, minWidth: 220, padding: 20, borderLeft: theme === 'dark' ? '1px solid #333' : '1px solid #ccc', background: theme === 'dark' ? '#181a1b' : '#fafbfc', color: theme === 'dark' ? '#f7f7f7' : '#222', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-        <h3 style={{ color: theme === 'dark' ? '#fff' : '#222' }}>Novedades del día</h3>
+        <h2 style={{ color: theme === 'dark' ? '#fff' : '#222', fontSize: 22, fontWeight: 700, marginBottom: 12 }}>Novedades del día</h2>
         {selectedDate ? (
           <>
             {/* Mostrar fecha seleccionada con día de la semana y formato dd/mm/yyyy */}
@@ -444,7 +447,7 @@ function App() {
                       setHistoryLoading(true);
                       setHistoryError(null);
                       try {
-                        const res = await fetch(`http://localhost:3001/activities/${id}/history`);
+                        const res = await fetch(`${API}activities/${id}/history`);
                         if (!res.ok) throw new Error('Error al obtener historial');
                         const data = await res.json();
                         setHistoryData(data);
@@ -466,7 +469,8 @@ function App() {
       </div>
       {/* Panel de accesos directos */}
       <div style={{ flex: 1, minWidth: 220, padding: 20, borderLeft: theme === 'dark' ? '1px solid #333' : '1px solid #ccc', background: theme === 'dark' ? '#181a1b' : '#fff', color: theme === 'dark' ? '#fff' : '#222', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-        <h3 style={{ color: theme === 'dark' ? '#fff' : '#222', fontSize: 24, fontWeight: 700, marginBottom: 24, marginTop: 10, letterSpacing: 1 }}>Accesos directos</h3>
+        <h2 style={{ color: theme === 'dark' ? '#fff' : '#222', fontSize: 24, fontWeight: 700, marginBottom: 24, marginTop: 10, letterSpacing: 1 }}>Accesos directos</h2>
+        {/* Estado para modal de exámenes finales */}
         <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', marginTop: 10 }}>
           {[
             { label: 'Trámites', onClick: () => {
@@ -553,7 +557,11 @@ function App() {
                   });
               }
             },
-            { label: 'STIC' }
+            { label: 'STIC' },
+            { label: 'Exámenes Finales', onClick: () => {
+                setExamenesModalOpen(true);
+              }
+            }
           ].map(card => (
             <div key={card.label}
               style={{
@@ -583,6 +591,21 @@ function App() {
             </div>
           ))}
         </div>
+        {/* Modal de exámenes finales */}
+        <Modal open={examenesModalOpen} onClose={() => setExamenesModalOpen(false)}>
+          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Exámenes Finales</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '100%', maxWidth: 500, margin: 'auto' }}>
+            <a href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=1276171040&single=true&urp=gmail_link" target="_blank" rel="noopener noreferrer" style={{ background: '#e3f2fd', borderRadius: 12, border: '1.2px solid #1976d2', padding: '18px 16px', fontWeight: 700, fontSize: 16, color: '#1976d2', textAlign: 'center', textDecoration: 'none', marginBottom: 8, display: 'block' }}>
+              DEPARTAMENTO DE CIENCIAS APLICADAS Y TECNOLOGÍA
+            </a>
+            <a href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=258106575&single=true&urp=gmail_link" target="_blank" rel="noopener noreferrer" style={{ background: '#e3f2fd', borderRadius: 12, border: '1.2px solid #1976d2', padding: '18px 16px', fontWeight: 700, fontSize: 16, color: '#1976d2', textAlign: 'center', textDecoration: 'none', marginBottom: 8, display: 'block' }}>
+              DEPARTAMENTO DE CIENCIAS ECONÓMICAS Y JURÍDICAS
+            </a>
+            <a href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=1874348986&single=true&urp=gmail_link" target="_blank" rel="noopener noreferrer" style={{ background: '#e3f2fd', borderRadius: 12, border: '1.2px solid #1976d2', padding: '18px 16px', fontWeight: 700, fontSize: 16, color: '#1976d2', textAlign: 'center', textDecoration: 'none', marginBottom: 8, display: 'block' }}>
+              DEPARTAMENTO DE HUMANIDADES Y CIENCIAS SOCIALES
+            </a>
+          </div>
+        </Modal>
         {/* Modal de formularios */}
         <Modal open={formulariosOpen} onClose={() => setFormulariosOpen(false)}>
           <h2 style={{ fontSize: 22, marginBottom: 14, color: '#000000ff', textAlign: 'center' }}>Formularios</h2>
