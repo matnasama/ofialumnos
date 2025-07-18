@@ -3,10 +3,9 @@
   command = "npm run build"
   publish = "front/dist"
 
-env = { 
-  # Variables de entorno para el frontend (si usas VITE_*)
-  # VITE_API_URL = "https://tu-backend-production.com" 
-}
+# Si quieres definir variables de entorno:
+#[build.environment]
+#  VITE_API_URL = "https://ofialumnos.vercel.app/api"
 
 [[redirects]]
   from = "/api/*"
