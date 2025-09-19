@@ -1,8 +1,17 @@
+import { logTramites } from './logTramites.js';
+import AccordionResultadosAuxiliares from './AccordionResultadosAuxiliares.jsx';
 // Modal simple reutilizable
 function Modal({ open, onClose, children }) {
   if (!open) return null;
+  // Handler para cerrar al clickear fuera del modal
+  function handleBackdropClick(e) {
+    if (e.target === e.currentTarget) onClose();
+  }
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0008', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div
+      style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#0008', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={handleBackdropClick}
+    >
       <div style={{ background: '#fff', borderRadius: 16, padding: 32, minWidth: 320, width: '50vw', maxWidth: 700, boxShadow: '0 2px 24px #0004', position: 'relative', maxHeight: '96vh', height: 'auto', minHeight: 600, overflowY: 'auto' }}>
         <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 18, background: 'none', border: 'none', fontSize: 28, fontWeight: 700, color: '#1976d2', cursor: 'pointer', zIndex: 2 }}>&times;</button>
         {children}
@@ -67,6 +76,53 @@ function App() {
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState(null);
+
+  // Estado y lógica para Auxiliares estudiantes
+  const [auxiliaresModalOpen, setAuxiliaresModalOpen] = useState(false);
+  const [auxiliaresData, setAuxiliaresData] = useState(null);
+  const [auxiliaresLoading, setAuxiliaresLoading] = useState(false);
+  const [auxiliaresError, setAuxiliaresError] = useState(null);
+  const [auxiliaresDni, setAuxiliaresDni] = useState('');
+  const [auxiliaresResult, setAuxiliaresResult] = useState(null);
+
+  useEffect(() => {
+    if (auxiliaresModalOpen && !auxiliaresData && !auxiliaresLoading) {
+      setAuxiliaresLoading(true);
+      fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/reportes_unm_auxiliares.json')
+        .then(res => res.json())
+        .then(data => {
+          setAuxiliaresData(data);
+          setAuxiliaresLoading(false);
+        })
+        .catch(() => {
+          setAuxiliaresError('No se pudo cargar el reporte de auxiliares');
+          setAuxiliaresLoading(false);
+        });
+    }
+    if (!auxiliaresModalOpen) {
+      setAuxiliaresDni('');
+      setAuxiliaresResult(null);
+      setAuxiliaresError(null);
+    }
+  }, [auxiliaresModalOpen]);
+
+  function handleBuscarAuxiliar(e) {
+    e.preventDefault();
+    setAuxiliaresError(null);
+    setAuxiliaresResult(null);
+    if (!auxiliaresData) return;
+    const dni = auxiliaresDni.trim();
+    if (!dni) return;
+    // Buscar solo con cant_aprobadas_final > 0
+    const found = auxiliaresData.filter(
+      p => String(p.nro_documento) === dni && Number(p.cant_aprobadas_final) > 0
+    );
+    if (found.length === 0) {
+      setAuxiliaresError('No se encontró ningún auxiliar con ese DNI y materias aprobadas.');
+    } else {
+      setAuxiliaresResult(found);
+    }
+  }
   const theme = useSystemTheme();
   // Helpers para calendario
   const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -486,6 +542,7 @@ function App() {
                     if (data && typeof data === 'object' && Array.isArray(data.tramites)) {
                       arr = data.tramites;
                     }
+                    logTramites(arr); // TEMP: ver estructura de cada trámite
                     setTramites(arr);
                     setTramitesLoading(false);
                   })
@@ -559,51 +616,216 @@ function App() {
               }
             },
             { label: 'STIC' },
+            { label: 'Auxiliares estudiantes', onClick: () => setAuxiliaresModalOpen(true) },
+// ...antes del return principal, junto a los otros modales...
+/* Modal Auxiliares estudiantes */
+// (Colocar esto junto a los otros modales, fuera del array de cards)
+// <Modal open={auxiliaresModalOpen} onClose={() => setAuxiliaresModalOpen(false)}>
+//   <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Auxiliares estudiantes</h2>
+//   <form onSubmit={handleBuscarAuxiliar} style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+//     <input
+//       type="text"
+//       placeholder="Buscar por DNI"
+//       value={auxiliaresDni}
+//       onChange={e => setAuxiliaresDni(e.target.value.replace(/[^0-9]/g, ''))}
+//       style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #bbb', fontSize: 15, width: 180, textAlign: 'center' }}
+//       maxLength={12}
+//       required
+//       autoFocus
+//       disabled={auxiliaresLoading}
+//     />
+//     <button type="submit" style={{ padding: '6px 18px', borderRadius: 6, border: 'none', background: '#1976d2', color: '#fff', fontWeight: 700, fontSize: 15, cursor: auxiliaresLoading ? 'not-allowed' : 'pointer' }} disabled={auxiliaresLoading}>Buscar</button>
+//   </form>
+//   {auxiliaresLoading && <div style={{ textAlign: 'center', margin: 18 }}>Cargando...</div>}
+//   {auxiliaresError && <div style={{ color: '#d32f2f', textAlign: 'center', margin: 18 }}>{auxiliaresError}</div>}
+//   {auxiliaresResult && auxiliaresResult.length > 0 && (
+//     <div style={{ margin: '0 auto', maxWidth: 500, background: '#e3f2fd', borderRadius: 12, padding: 18, border: '1.5px solid #1976d2', boxShadow: '0 1px 4px #1976d233' }}>
+//       {auxiliaresResult.map((aux, idx) => (
+//         <div key={aux.documento + '-' + idx} style={{ marginBottom: 18 }}>
+//           <div style={{ fontWeight: 700, fontSize: 18, color: '#1976d2', marginBottom: 6 }}>{aux.nombre || 'Sin nombre'}</div>
+//           <div style={{ fontSize: 15, color: '#333', marginBottom: 4 }}><b>DNI:</b> {aux.documento}</div>
+//           <div style={{ fontSize: 15, color: '#333', marginBottom: 4 }}><b>Carrera:</b> {aux.carrera || 'Sin carrera'}</div>
+//           <div style={{ fontSize: 15, color: '#333', marginBottom: 4 }}><b>Materias aprobadas:</b> {aux.cant_aprobadas_final}</div>
+//         </div>
+//       ))}
+//     </div>
+//   )}
+// </Modal>
             { label: 'Exámenes Finales', onClick: () => {
                 setExamenesModalOpen(true);
               }
             }
           ].map(card => (
-            <div key={card.label}
+            <div
+              key={typeof card.label === 'string' ? card.label : card.label?.props?.children || Math.random()}
               style={{
-                width: 120,
+                width: 150,
                 height: 120,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: theme === 'dark' ? '#23272f' : '#e3f2fd',
-                color: theme === 'dark' ? '#fff' : '#1976d2',
-                borderRadius: 16,
-                boxShadow: theme === 'dark' ? '0 1px 6px #0006' : '0 1px 6px #1976d233',
-                fontWeight: 300,
-                fontSize: 18,
+                background: theme === 'dark' ? 'linear-gradient(135deg, #1565c0 60%, #1976d2 100%)' : 'linear-gradient(135deg, #42a5f5 60%, #90caf9 100%)',
+                color: theme === 'dark' ? '#fff' : '#0d2346',
+                borderRadius: 20,
+                boxShadow: theme === 'dark' ? '0 2px 12px #0008' : '0 2px 12px #1976d233',
+                fontWeight: 600,
+                fontSize: 20,
                 textAlign: 'center',
                 cursor: 'pointer',
-                transition: 'background 0.2s, color 0.2s',
-                border: theme === 'dark' ? '1px solid #333' : '1px solid #1976d2',
+                transition: 'background 0.2s, color 0.2s, box-shadow 0.2s',
+                border: 'none',
                 userSelect: 'none',
                 letterSpacing: 1,
-                marginBottom: 0
+                marginBottom: 0,
+                padding: '0 10px',
+                overflow: 'hidden',
+                wordBreak: 'break-word',
               }}
               tabIndex={0}
               onClick={card.onClick}
+              onMouseOver={e => {
+                e.currentTarget.style.background = theme === 'dark'
+                  ? 'linear-gradient(135deg, #1976d2 60%, #42a5f5 100%)'
+                  : 'linear-gradient(135deg, #1976d2 60%, #42a5f5 100%)';
+                e.currentTarget.style.boxShadow = '0 4px 18px #1976d288';
+                e.currentTarget.style.color = '#fff';
+              }}
+              onMouseOut={e => {
+                e.currentTarget.style.background = theme === 'dark'
+                  ? 'linear-gradient(135deg, #1565c0 60%, #1976d2 100%)'
+                  : 'linear-gradient(135deg, #42a5f5 60%, #90caf9 100%)';
+                e.currentTarget.style.boxShadow = theme === 'dark'
+                  ? '0 2px 12px #0008'
+                  : '0 2px 12px #1976d233';
+                e.currentTarget.style.color = theme === 'dark' ? '#fff' : '#0d2346';
+              }}
             >
-              {card.label}
+              <span style={{ width: '100%', textAlign: 'center', lineHeight: 1.2 }}>{typeof card.label === 'string' ? card.label : card.label}</span>
             </div>
           ))}
         </div>
         {/* Modal de exámenes finales */}
+        {/* Modal Auxiliares estudiantes */}
+        <Modal open={auxiliaresModalOpen} onClose={() => setAuxiliaresModalOpen(false)}>
+          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Auxiliares estudiantes</h2>
+          <form onSubmit={handleBuscarAuxiliar} style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+            <input
+              type="text"
+              placeholder="Buscar por DNI"
+              value={auxiliaresDni}
+              onChange={e => setAuxiliaresDni(e.target.value.replace(/[^0-9]/g, ''))}
+              style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #bbb', fontSize: 15, width: 180, textAlign: 'center' }}
+              maxLength={12}
+              required
+              autoFocus
+              disabled={auxiliaresLoading}
+            />
+            <button type="submit" style={{ padding: '6px 18px', borderRadius: 6, border: 'none', background: '#1976d2', color: '#fff', fontWeight: 700, fontSize: 15, cursor: auxiliaresLoading ? 'not-allowed' : 'pointer' }} disabled={auxiliaresLoading}>Buscar</button>
+          </form>
+          {auxiliaresLoading && <div style={{ textAlign: 'center', margin: 18 }}>Cargando...</div>}
+          {auxiliaresError && <div style={{ color: '#d32f2f', textAlign: 'center', margin: 18 }}>{auxiliaresError}</div>}
+          {auxiliaresResult && auxiliaresResult.length > 0 && (
+            <AccordionResultadosAuxiliares resultados={auxiliaresResult} />
+
+// Componente Accordion para mostrar los resultados de auxiliares
+// (Mover al final del archivo para evitar errores de declaración)
+          )}
+        </Modal>
         <Modal open={examenesModalOpen} onClose={() => setExamenesModalOpen(false)}>
           <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Exámenes Finales</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '100%', maxWidth: 500, margin: 'auto' }}>
-            <a href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=1276171040&single=true&urp=gmail_link" target="_blank" rel="noopener noreferrer" style={{ background: '#e3f2fd', borderRadius: 12, border: '1.2px solid #1976d2', padding: '18px 16px', fontWeight: 700, fontSize: 16, color: '#1976d2', textAlign: 'center', textDecoration: 'none', marginBottom: 8, display: 'block' }}>
-              DEPARTAMENTO DE CIENCIAS APLICADAS Y TECNOLOGÍA
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '100%', maxWidth: 600, margin: 'auto' }}>
+            {/* Botón DCAYT */}
+            <a
+              href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=1276171040&single=true&urp=gmail_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: '#42a5f5',
+                borderRadius: 8,
+                border: '2px solid #1976d2',
+                padding: '22px 0',
+                fontWeight: 'normal',
+                fontSize: 18,
+                color: '#fff',
+                textAlign: 'center',
+                textDecoration: 'none',
+                width: '100%',
+                maxWidth: 420,
+                minWidth: 220,
+                marginBottom: 0,
+                display: 'block',
+                boxShadow: '0 2px 12px #1976d233',
+                transition: 'background 0.2s, color 0.2s, box-shadow 0.2s',
+                cursor: 'pointer',
+                letterSpacing: 0.5,
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                textTransform: 'uppercase',
+              }}
+            >
+              Departamento de Ciencias Aplicadas y Tecnología
             </a>
-            <a href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=258106575&single=true&urp=gmail_link" target="_blank" rel="noopener noreferrer" style={{ background: '#e3f2fd', borderRadius: 12, border: '1.2px solid #1976d2', padding: '18px 16px', fontWeight: 700, fontSize: 16, color: '#1976d2', textAlign: 'center', textDecoration: 'none', marginBottom: 8, display: 'block' }}>
-              DEPARTAMENTO DE CIENCIAS ECONÓMICAS Y JURÍDICAS
+            {/* Botón DCEyJ */}
+            <a
+              href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=258106575&single=true&urp=gmail_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: '#006400',
+                borderRadius: 8,
+                border: '2px solid #1976d2',
+                padding: '22px 0',
+                fontWeight: 'normal',
+                fontSize: 18,
+                color: '#fff',
+                textAlign: 'center',
+                textDecoration: 'none',
+                width: '100%',
+                maxWidth: 420,
+                minWidth: 220,
+                marginBottom: 0,
+                display: 'block',
+                boxShadow: '0 2px 12px #1976d233',
+                transition: 'background 0.2s, color 0.2s, box-shadow 0.2s',
+                cursor: 'pointer',
+                letterSpacing: 0.5,
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                textTransform: 'uppercase',
+              }}
+            >
+              Departamento de Ciencias Económicas y Jurídicas
             </a>
-            <a href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=1874348986&single=true&urp=gmail_link" target="_blank" rel="noopener noreferrer" style={{ background: '#e3f2fd', borderRadius: 12, border: '1.2px solid #1976d2', padding: '18px 16px', fontWeight: 700, fontSize: 16, color: '#1976d2', textAlign: 'center', textDecoration: 'none', marginBottom: 8, display: 'block' }}>
-              DEPARTAMENTO DE HUMANIDADES Y CIENCIAS SOCIALES
+            {/* Botón DHYCS */}
+            <a
+              href="https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSSs7PbwGNijblVEd7VzY0YCgd4vAzAr8ZJtZMHAPtxkVFxYzRON50pBVhxvJwRzg/pubhtml?gid=1874348986&single=true&urp=gmail_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: '#f44336',
+                borderRadius: 8,
+                border: '2px solid #1976d2',
+                padding: '22px 0',
+                fontWeight: 'normal',
+                fontSize: 18,
+                color: '#fff',
+                textAlign: 'center',
+                textDecoration: 'none',
+                width: '100%',
+                maxWidth: 420,
+                minWidth: 220,
+                marginBottom: 0,
+                display: 'block',
+                boxShadow: '0 2px 12px #1976d233',
+                transition: 'background 0.2s, color 0.2s, box-shadow 0.2s',
+                cursor: 'pointer',
+                letterSpacing: 0.5,
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                textTransform: 'uppercase',
+              }}
+            >
+              Departamento de Humanidades y Ciencias Sociales
             </a>
           </div>
         </Modal>
@@ -690,34 +912,22 @@ function App() {
             })()
           )}
         </Modal>
-        {/* Modal de trámites */}
+        {/* Modal de trámites (layout fila, key robusta) */}
         <Modal open={tramitesOpen} onClose={() => setTramitesOpen(false)}>
           <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Trámites</h2>
           {tramitesLoading && <div style={{ textAlign: 'center', margin: 18 }}>Cargando...</div>}
           {tramitesError && <div style={{ color: '#d32f2f', textAlign: 'center', margin: 18 }}>{tramitesError}</div>}
           {!tramitesLoading && !tramitesError && tramites && tramites.length > 0 && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 10,
-              justifyItems: 'center',
-              alignItems: 'center',
-              width: '100%',
-              margin: '0 auto',
-              maxWidth: 800
-            }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 600, margin: 'auto' }}>
               {tramites.map((t, idx) => (
-                <div key={t.nombre || idx} style={{ background: '#e3f2fd', borderRadius: 12, boxShadow: '0 1px 4px #1976d233', border: '1.2px solid #1976d2', padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, height: 160, width: '100%', maxWidth: 160, justifyContent: 'space-around' }}>
-                  <div style={{ fontWeight: 500, fontSize: 16, color: '#1976d2', marginBottom: 8, textAlign: 'center', letterSpacing: 0.5 }}>{t.nombre}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center', width: '100%' }}>
+                <div key={(t.titulo || t.nombre || 'tramite') + '-' + idx} style={{ background: '#e3f2fd', borderRadius: 12, border: '1.2px solid #1976d2', padding: '14px 18px', fontSize: 16, color: '#1976d2', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontWeight: 700, fontSize: 17, marginRight: 18, flex: 1, textAlign: 'left', textTransform: 'uppercase' }}>{(t.titulo || t.nombre || 'Trámite')}</div>
+                  <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
                     {t.formulario && (
-                      <a href={t.formulario} target="_blank" rel="noopener noreferrer" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 500, fontSize: 13, textDecoration: 'none', cursor: 'pointer', letterSpacing: 0.5, transition: 'background 0.2s, color 0.2s', width: '60%', textAlign: 'center' }}>Ver formulario</a>
-                    )}
-                    {t.forms && (
-                      <a href={t.forms} target="_blank" rel="noopener noreferrer" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 500, fontSize: 13, textDecoration: 'none', cursor: 'pointer', letterSpacing: 0.5, transition: 'background 0.2s, color 0.2s', width: '60%', textAlign: 'center' }}>Ver formulario</a>
+                      <a href={t.formulario} target="_blank" rel="noopener noreferrer" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 600, fontSize: 15, textDecoration: 'none', cursor: 'pointer', letterSpacing: 0.5, transition: 'background 0.2s, color 0.2s' }}>Formulario</a>
                     )}
                     {t.hoja_de_calculo && (
-                      <a href={t.hoja_de_calculo} target="_blank" rel="noopener noreferrer" style={{ background: '#fff', color: '#1976d2', border: '1.2px solid #1976d2', borderRadius: 8, padding: '8px 18px', fontWeight: 500, fontSize: 13, textDecoration: 'none', cursor: 'pointer', letterSpacing: 0.5, transition: 'background 0.2s, color 0.2s', width: '60%', textAlign: 'center' }}>Ver trámite</a>
+                      <a href={t.hoja_de_calculo} target="_blank" rel="noopener noreferrer" style={{ background: '#fff', color: '#1976d2', border: '1.2px solid #1976d2', borderRadius: 8, padding: '8px 18px', fontWeight: 600, fontSize: 15, textDecoration: 'none', cursor: 'pointer', letterSpacing: 0.5, transition: 'background 0.2s, color 0.2s' }}>Ver trámite</a>
                     )}
                   </div>
                 </div>
@@ -725,19 +935,68 @@ function App() {
             </div>
           )}
         </Modal>
-        {/* Modal de grillas */}
+        {/* Modal de grillas de cursada */}
         <Modal open={grillasModalOpen} onClose={() => setGrillasModalOpen(false)}>
-          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Grillas</h2>
+          <h2 style={{ fontSize: 22, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Grillas de cursada</h2>
           {grillasModalLoading && <div style={{ textAlign: 'center', margin: 18 }}>Cargando...</div>}
           {grillasModalError && <div style={{ color: '#d32f2f', textAlign: 'center', margin: 18 }}>{grillasModalError}</div>}
           {!grillasModalLoading && !grillasModalError && grillasModalData && grillasModalData.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '50%', maxWidth: 500, margin: 'auto' }}>
-              {grillasModalData.map((g, idx) => (
-                <div key={g.url || idx} style={{ background: '#e3f2fd', borderRadius: 12, boxShadow: '0 1px 4px #1976d233', border: '1.2px solid #1976d2', padding: '18px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: '#1976d2', marginBottom: 8, textAlign: 'center', letterSpacing: 0.5 }}>{(g.nombre || '').toUpperCase()}</div>
-                  <a href={g.url} target="_blank" rel="noopener noreferrer" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 700, fontSize: 15, textDecoration: 'none', cursor: 'pointer', letterSpacing: 0.5, transition: 'background 0.2s, color 0.2s' }}>Ver</a>
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: '100%', maxWidth: 600, margin: 'auto' }}>
+              {grillasModalData.map((g, idx) => {
+                let nombreDepto = '';
+                let colorFondo = '';
+                let colorTexto = '#fff';
+                if (/dcayt/i.test(g.nombre)) {
+                  nombreDepto = 'Departamento de Ciencias Aplicadas y Tecnología';
+                  colorFondo = '#42a5f5';
+                } else if (/dceyj/i.test(g.nombre)) {
+                  nombreDepto = 'Departamento de Ciencias Económicas y Jurídicas';
+                  colorFondo = '#006400';
+                } else if (/dhycs/i.test(g.nombre)) {
+                  nombreDepto = 'Departamento de Humanidades y Ciencias Sociales';
+                  colorFondo = '#f44336';
+                } else {
+                  nombreDepto = g.nombre;
+                  colorFondo = 'linear-gradient(120deg, #e3f2fd 60%, #bbdefb 100%)';
+                  colorTexto = '#1976d2';
+                }
+                // Capitalizar la palabra Grilla
+                let nombreGrilla = g.nombre.replace(/grilla/gi, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase());
+                // Si el nombreDepto es distinto al nombre original, usarlo
+                let label = nombreDepto !== g.nombre ? nombreDepto : nombreGrilla;
+                return (
+                  <a
+                    key={(g.url ? g.url : 'grilla') + '-' + idx}
+                    href={g.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: colorFondo,
+                      borderRadius: 8,
+                      border: '2px solid #1976d2',
+                      padding: '22px 0',
+                      fontWeight: 'normal',
+                      fontSize: 18,
+                      color: colorTexto,
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                      width: '100%',
+                      maxWidth: 420,
+                      minWidth: 220,
+                      marginBottom: 0,
+                      display: 'block',
+                      boxShadow: '0 2px 12px #1976d233',
+                      transition: 'background 0.2s, color 0.2s, box-shadow 0.2s',
+                      cursor: 'pointer',
+                      letterSpacing: 0.5,
+                      marginLeft: 'auto',
+                      marginRight: 'auto'
+                    }}
+                  >
+                    {label.toUpperCase()}
+                  </a>
+                );
+              })}
             </div>
           )}
         </Modal>
