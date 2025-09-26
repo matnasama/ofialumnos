@@ -193,7 +193,7 @@ const PLANTILLAS_FALLBACK = 	{
 			"id": 28,
 			"nombre": "CAMBIO O SIMULTANEIDAD DE CARRERA",
 			"descripcion":"Para solicitar un cambio o simultaneidad* de carrera tenés que completar el siguiente formulario virtual para dejar registro de la solicitud que querés realizar:\n* Para poder solicitar simultaneidad de carreras tenés que contar con un 25% de las asignaturas aprobadas de la carrera en la que te encontrás previamente inscripto.\nEl trámite de cambio/simultaneidad de carrera lo puede realizar desde el 29/09/2025 al 20/11/2025.",
-			"url":"https://forms.gle/H6cTXCuCyu8moL8f9"
+			"url":"https://forms.gle/J72NmuPYeRhfKpxKA"
 		},
 		{
 			"id": 29,
