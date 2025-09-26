@@ -1604,7 +1604,7 @@ function App() {
         </Modal>
         {/* Modal para historial de versiones */}
         <Modal open={historyModalOpen} onClose={() => setHistoryModalOpen(false)}>
-          <ModalTitle>Historial de versiones</ModalTitle>
+          <ModalTitle>Historial de versiones.</ModalTitle>
           {historyLoading && <div style={{ textAlign: 'center', margin: 18 }}>Cargando...</div>}
           {historyError && <div style={{ color: '#d32f2f', textAlign: 'center', margin: 18 }}>{historyError}</div>}
           {!historyLoading && !historyError && historyData && historyData.length > 0 && (
