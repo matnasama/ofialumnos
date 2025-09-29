@@ -199,13 +199,13 @@ const PLANTILLAS_FALLBACK = 	{
 			"id": 29,
 			"nombre": "INSCRIPCION PARA EGRESADOS",
 			"descripcion":"Para solicitar la reinscripción a una nueva carrera tenés que completar el siguiente formulario virtual para dejar registro de la solicitud que querés realizar:\n*Al momento de completar el formulario deberás seleccionar dentro de SITUACIÓN ACADÉMICA la opción EGRESADO UNM.\nEl trámite de reinscripción a una nueva carrera lo podés realizar desde el 29/09/2025 al 20/11/2025.",
-			"url":"https://forms.gle/H6cTXCuCyu8moL8f9"
+			"url":"https://forms.gle/J72NmuPYeRhfKpxKA"
 		},
 		{
 			"id": 30,
 			"nombre": "INSCRIPCION PARA RECHAZADOS (COPRUN APROBADO)",
 			"descripcion":"Para solicitar la reinscripción a una carrera tenés que completar el siguiente formulario virtual para dejar registro de la solicitud que querés realizar:\n*Al momento de completar el formulario deberás seleccionar dentro de SITUACIÓN ACADÉMICA la opción COPRUN APROBADO Y QUIERO REINSCRIBIRME.\nEl trámite de reinscripción lo podés realizar desde el 29/09/2025 al 20/11/2025.",
-			"url":"https://forms.gle/H6cTXCuCyu8moL8f9"
+			"url":"https://forms.gle/J72NmuPYeRhfKpxKA"
 		},
 		{
 			"id": 31,
