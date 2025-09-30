@@ -26,16 +26,18 @@ const activitiesRouter = express.Router();
 
 // Endpoint para eliminar actividad (admin puede eliminar cualquiera, usuario solo las suyas)
 activitiesRouter.delete('/:id', async (req, res) => {
-  // LOGS DETALLADOS PARA DEBUG
-  console.log('DELETE /activities/:id llamado');
-  console.log('req.url:', req.url);
-  console.log('req.query:', req.query);
-  console.log('req.body:', req.body);
+  // Detalles de petición para debug local sólo si DEBUG_LOGS=true
+  if (process.env.DEBUG_LOGS === 'true') {
+    console.debug && console.debug('DELETE /activities/:id llamado');
+    console.debug && console.debug('req.url:', req.url);
+    console.debug && console.debug('req.query:', req.query);
+    console.debug && console.debug('req.body:', req.body);
+  }
   // Prioriza userId en body, luego en query string
   const userId = (req.body && req.body.userId) || req.query.userId;
   const activityId = req.params.id;
   if (!userId) {
-    console.log('No se recibió userId en body ni query:', req.body, req.query);
+    if (process.env.DEBUG_LOGS === 'true') console.debug && console.debug('No se recibió userId en body ni query:', req.body, req.query);
     return res.status(400).json({ error: 'Falta userId' });
   }
   try {
@@ -165,7 +167,7 @@ activitiesRouter.get('/:id/history', async (req, res) => {
 // Montar el router de activities en /api/activities
 app.use('/api/activities', activitiesRouter);
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`Servidor backend escuchando en puerto ${PORT}`);
+  if (process.env.DEBUG_LOGS === 'true') console.debug && console.debug(`Servidor backend escuchando en puerto ${PORT}`);
 });

@@ -604,7 +604,6 @@ function App() {
   async function handleDeleteActivity(id) {
     if (!user) return;
     const url = `${API}activities/${id}?userId=${encodeURIComponent(user.id)}`;
-    console.log('DELETE url:', url, 'user.id:', user.id, 'typeof:', typeof user.id);
     const res = await fetch(url, {
       method: 'DELETE'
     });
@@ -637,17 +636,46 @@ function App() {
     try {
       const res = await fetch(`${API}activities`);
       const data = await res.json();
-      const acts = data.map(a => ({
+      const actsBase = data.map(a => ({
         id: a.id,
         title: a.titulo,
         description: a.descripcion,
         date: a.fecha_inicio ? a.fecha_inicio.slice(0, 10) : '', // yyyy-mm-dd
         user_id: a.user_id,
-        username: a.username
+        username: a.username,
+        is_read: false,
+        is_done: false
       }));
+      let acts = actsBase;
+      // If user is logged, fetch flags for each activity in parallel
+      if (user && user.id) {
+        const flagPromises = actsBase.map(a => fetch(`${API}activities/${a.id}/flags?userId=${encodeURIComponent(user.id)}`).then(r => r.ok ? r.json() : { is_read: false, is_done: false }).catch(() => ({ is_read: false, is_done: false })));
+        const flags = await Promise.all(flagPromises);
+        acts = actsBase.map((a, idx) => ({ ...a, is_read: flags[idx].is_read || false, is_done: flags[idx].is_done || false }));
+      }
       setActivities(acts);
     } catch {
       setActivities([]);
+    }
+  }
+
+  // Toggle a flag (is_read or is_done) for the current user on an activity
+  async function toggleFlag(activityId, flagName) {
+    if (!user) return;
+    const act = activities.find(a => a.id === activityId);
+    if (!act) return;
+    const newFlags = { is_read: act.is_read, is_done: act.is_done };
+    newFlags[flagName] = !newFlags[flagName];
+    try {
+      await fetch(`${API}activities/${activityId}/flags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, is_read: !!newFlags.is_read, is_done: !!newFlags.is_done })
+      });
+      // update local state immediately for responsiveness
+      setActivities(acts => acts.map(a => a.id === activityId ? { ...a, is_read: newFlags.is_read, is_done: newFlags.is_done } : a));
+    } catch (err) {
+      console.error('Error toggling flag', err);
     }
   }
   // Render
@@ -905,6 +933,7 @@ function App() {
                       }
                       setHistoryLoading(false);
                     }}
+                    toggleFlag={toggleFlag}
                   />
                 ))}
               </ul>
@@ -982,7 +1011,6 @@ function App() {
                 // ayudar a depurar problemas con la URL o la respuesta remota.
                 // Load plantillas from the repo's data.json (contains consultas)
                 const plantillasUrl = 'https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/data.json';
-                console.debug('Cargando plantillas desde', plantillasUrl);
                 fetch(plantillasUrl)
                   .then(res => {
                     if (!res.ok) {
@@ -1841,7 +1869,7 @@ function App() {
 
 export default App;
 // Componente AccordionItem
-function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handleDeleteActivity, handleCancelEdit, handleSaveEdit, setEditForm, selectedDate, activities, user, handleSaveEditActivity, handleShowHistory }) {
+function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handleDeleteActivity, handleCancelEdit, handleSaveEdit, setEditForm, selectedDate, activities, user, handleSaveEditActivity, handleShowHistory, toggleFlag }) {
   const [open, setOpen] = useState(false);
   const isEditing = editingId === act.id;
   return (
@@ -1912,6 +1940,13 @@ function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handl
               </div>
               {user && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 12 }}>
+                  {/* Botones para marcar como hecho / leido */}
+                  <button onClick={() => toggleFlag && toggleFlag(act.id, 'is_done')} title={act.is_done ? 'Marcar como no hecho' : 'Marcar como hecho'} style={{ background: act.is_done ? '#4caf50' : 'none', color: act.is_done ? '#fff' : '#1976d2', border: 'none', padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontWeight: 700 }}>
+                    {act.is_done ? '✓ Hecho' : 'Hecho'}
+                  </button>
+                  <button onClick={() => toggleFlag && toggleFlag(act.id, 'is_read')} title={act.is_read ? 'Marcar como no leído' : 'Marcar como leído'} style={{ background: act.is_read ? '#1976d2' : 'none', color: act.is_read ? '#fff' : '#1976d2', border: `1px solid ${act.is_read ? '#1976d2' : '#1976d2'}`, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontWeight: 700 }}>
+                    {act.is_read ? '✓ Leído' : 'Leído'}
+                  </button>
                   {(user.role === 'admin' || user.id === act.user_id) && (
                     <button onClick={() => handleStartEdit(act)} title="Editar" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1976d2', fontSize: 22, display: 'flex', alignItems: 'center' }}>
                       <EditIcon style={{ fontSize: 24, color: '#1976d2' }} />
