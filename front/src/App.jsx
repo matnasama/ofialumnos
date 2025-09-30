@@ -38,8 +38,19 @@ function Modal({ open, onClose, children, width = '60vw', minWidth = 320, maxWid
 }
 
 import { useState, useEffect, useRef } from 'react';
-let API = import.meta.env.VITE_API_URL;
-if (API && !API.endsWith('/')) API = API + '/';
+// Determine API base URL.
+// In development (localhost) always use relative '/api/' to avoid CORS to production host.
+let API = '/api/';
+try {
+  const configured = import.meta.env.VITE_API_URL;
+  const isLocalhost = typeof window !== 'undefined' && window.location && /localhost|127\.0\.0\.1/.test(window.location.hostname);
+  if (!isLocalhost && configured) {
+    API = configured;
+    if (API && !API.endsWith('/')) API = API + '/';
+  }
+} catch (e) {
+  // ignore in non-browser environments
+}
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import './App.css';
