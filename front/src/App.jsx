@@ -38,8 +38,7 @@ function Modal({ open, onClose, children, width = '60vw', minWidth = 320, maxWid
 }
 
 import { useState, useEffect, useRef } from 'react';
-// Base API URL: use VITE_API_URL when provided, otherwise default to relative '/api/'
-let API = import.meta.env.VITE_API_URL || '/api/';
+let API = import.meta.env.VITE_API_URL;
 if (API && !API.endsWith('/')) API = API + '/';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -638,65 +637,17 @@ function App() {
     try {
       const res = await fetch(`${API}activities`);
       const data = await res.json();
-      const actsBase = data.map(a => ({
+      const acts = data.map(a => ({
         id: a.id,
         title: a.titulo,
         description: a.descripcion,
         date: a.fecha_inicio ? a.fecha_inicio.slice(0, 10) : '', // yyyy-mm-dd
         user_id: a.user_id,
-        username: a.username,
-        is_read: false,
-        is_done: false
+        username: a.username
       }));
-      let acts = actsBase;
-      // If user is logged, fetch flags for all activities in a single batch request
-      if (user && user.id && actsBase.length > 0) {
-        try {
-          const ids = actsBase.map(a => a.id);
-          const br = await fetch(`${API}activities/flags/batch`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: String(user.id), activityIds: ids })
-          });
-          const bj = await br.json();
-          const flagsMap = (bj && bj.flags) || {};
-          acts = actsBase.map(a => ({ ...a, is_read: !!flagsMap[a.id]?.is_read, is_done: !!flagsMap[a.id]?.is_done }));
-        } catch (e) {
-          console.error('Error fetching batch flags', e);
-          acts = actsBase;
-        }
-      }
       setActivities(acts);
     } catch {
       setActivities([]);
-    }
-  }
-
-  // Toggle a flag (is_read or is_done) for the current user on an activity
-  async function toggleFlag(activityId, flagName) {
-    if (!user) return;
-    const act = activities.find(a => a.id === activityId);
-    if (!act) return;
-    const newFlags = { is_read: act.is_read, is_done: act.is_done };
-    newFlags[flagName] = !newFlags[flagName];
-    // optimistic update
-    setActivities(prev => prev.map(a => a.id === activityId ? { ...a, is_read: newFlags.is_read, is_done: newFlags.is_done } : a));
-    try {
-      const res = await fetch(`${API}activities/${activityId}/flags`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: String(user.id), is_read: !!newFlags.is_read, is_done: !!newFlags.is_done })
-      });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j && j.error ? j.error : 'Network error');
-      // reconcile with canonical values returned by server (if provided)
-      if (j && j.row) {
-        setActivities(prev => prev.map(a => a.id === activityId ? { ...a, is_read: j.row.is_read, is_done: j.row.is_done } : a));
-      }
-    } catch (err) {
-      console.error('Error toggling flag', err);
-      // rollback optimistic update
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, is_read: act.is_read, is_done: act.is_done } : a));
     }
   }
   // Render
@@ -954,7 +905,6 @@ function App() {
                       }
                       setHistoryLoading(false);
                     }}
-                    toggleFlag={toggleFlag}
                   />
                 ))}
               </ul>
@@ -1891,7 +1841,7 @@ function App() {
 
 export default App;
 // Componente AccordionItem
-function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handleDeleteActivity, handleCancelEdit, handleSaveEdit, setEditForm, selectedDate, activities, user, handleSaveEditActivity, handleShowHistory, toggleFlag }) {
+function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handleDeleteActivity, handleCancelEdit, handleSaveEdit, setEditForm, selectedDate, activities, user, handleSaveEditActivity, handleShowHistory }) {
   const [open, setOpen] = useState(false);
   const isEditing = editingId === act.id;
   return (
@@ -1962,13 +1912,6 @@ function AccordionItem({ act, theme, editingId, editForm, handleStartEdit, handl
               </div>
               {user && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 12 }}>
-                  {/* Botones para marcar como hecho / leido */}
-                  <button onClick={() => toggleFlag && toggleFlag(act.id, 'is_done')} title={act.is_done ? 'Marcar como no hecho' : 'Marcar como hecho'} style={{ background: act.is_done ? '#4caf50' : 'none', color: act.is_done ? '#fff' : '#1976d2', border: 'none', padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontWeight: 700 }}>
-                    {act.is_done ? '✓ Hecho' : 'Hecho'}
-                  </button>
-                  <button onClick={() => toggleFlag && toggleFlag(act.id, 'is_read')} title={act.is_read ? 'Marcar como no leído' : 'Marcar como leído'} style={{ background: act.is_read ? '#1976d2' : 'none', color: act.is_read ? '#fff' : '#1976d2', border: `1px solid ${act.is_read ? '#1976d2' : '#1976d2'}`, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', fontWeight: 700 }}>
-                    {act.is_read ? '✓ Leído' : 'Leído'}
-                  </button>
                   {(user.role === 'admin' || user.id === act.user_id) && (
                     <button onClick={() => handleStartEdit(act)} title="Editar" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#1976d2', fontSize: 22, display: 'flex', alignItems: 'center' }}>
                       <EditIcon style={{ fontSize: 24, color: '#1976d2' }} />
