@@ -682,10 +682,10 @@ function App() {
     // optimistic update
     setActivities(prev => prev.map(a => a.id === activityId ? { ...a, is_read: newFlags.is_read, is_done: newFlags.is_done } : a));
     try {
-      const res = await fetch(`${API}activities/${activityId}/flags`, {
+      const res = await fetch(`${API}flags`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: String(user.id), is_read: !!newFlags.is_read, is_done: !!newFlags.is_done })
+        body: JSON.stringify({ activityId, userId: String(user.id), is_read: !!newFlags.is_read, is_done: !!newFlags.is_done })
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j && j.error ? j.error : 'Network error');
