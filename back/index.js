@@ -234,29 +234,6 @@ activitiesRouter.post('/:id/flags', async (req, res) => {
   }
 });
 
-// Alias: aceptar POST /api/activities/flags with { activityId, userId, is_read, is_done }
-activitiesRouter.post('/flags', async (req, res) => {
-  const { activityId, userId, is_read, is_done } = req.body;
-  if (!userId) return res.status(400).json({ error: 'Falta userId' });
-  if (!activityId) return res.status(400).json({ error: 'Falta activityId' });
-  try {
-    console.log('POST /activities/flags payload:', req.body);
-    await pool.query(
-      `INSERT INTO activity_user_flags (activity_id, user_id, is_read, is_done, updated_at)
-       VALUES ($1, $2, $3, $4, now())
-       ON CONFLICT (activity_id, user_id) DO UPDATE SET is_read = EXCLUDED.is_read, is_done = EXCLUDED.is_done, updated_at = now()`,
-      [activityId, userId, !!is_read, !!is_done]
-    );
-    const sel = await pool.query('SELECT activity_id, user_id, is_read, is_done, updated_at FROM activity_user_flags WHERE activity_id = $1 AND user_id = $2', [activityId, userId]);
-    const row = sel.rows[0] || { activity_id: activityId, user_id: userId, is_read: !!is_read, is_done: !!is_done };
-    console.log('Flags upserted (alias) for activity %s user %s ->', activityId, userId, row);
-    res.json({ success: true, row });
-  } catch (err) {
-    console.error('Error al actualizar flags (alias):', err);
-    res.status(500).json({ error: 'Error al actualizar flags' });
-  }
-});
-
 // Batch endpoint: recibir { userId, activityIds: [] } y devolver flags para esas activities
 activitiesRouter.post('/flags/batch', async (req, res) => {
   const { userId, activityIds } = req.body;
@@ -296,44 +273,11 @@ activitiesRouter.get('/flags', async (req, res) => {
 // Montar el router de activities en /api/activities
 app.use('/api/activities', activitiesRouter);
 
-// Top-level alias: POST /api/flags to update flags (avoid path routing issues on some hosts)
-app.post('/api/flags', async (req, res) => {
-  const { activityId, userId, is_read, is_done } = req.body || {};
-  if (!userId) return res.status(400).json({ error: 'Falta userId' });
-  if (!activityId) return res.status(400).json({ error: 'Falta activityId' });
-  try {
-    console.log('POST /api/flags payload:', req.body);
-    await pool.query(
-      `INSERT INTO activity_user_flags (activity_id, user_id, is_read, is_done, updated_at)
-       VALUES ($1, $2, $3, $4, now())
-       ON CONFLICT (activity_id, user_id) DO UPDATE SET is_read = EXCLUDED.is_read, is_done = EXCLUDED.is_done, updated_at = now()`,
-      [activityId, userId, !!is_read, !!is_done]
-    );
-    const sel = await pool.query('SELECT activity_id, user_id, is_read, is_done, updated_at FROM activity_user_flags WHERE activity_id = $1 AND user_id = $2', [activityId, userId]);
-    const row = sel.rows[0] || { activity_id: activityId, user_id: userId, is_read: !!is_read, is_done: !!is_done };
-    console.log('Flags upserted (top-level) for activity %s user %s ->', activityId, userId, row);
-    res.json({ success: true, row });
-  } catch (err) {
-    console.error('Error al actualizar flags (top-level):', err);
-    res.status(500).json({ error: 'Error al actualizar flags' });
-  }
-});
-
 // Use configured PORT if provided (useful in hosting environments)
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor backend escuchando en puerto ${PORT}`);
 });
-// Log CORS config at startup to help debugging in deployed environments
-try {
-  const rawOrigins = process.env.CORS_ORIGIN || '*';
-  const allowedOrigins = rawOrigins === '*' ? ['*'] : rawOrigins.split(',').map(s => s.trim()).filter(Boolean);
-  console.log('CORS_ORIGIN env:', process.env.CORS_ORIGIN);
-  console.log('Allowed CORS origins at startup:', allowedOrigins);
-  console.log('CORS_ALLOW_CREDENTIALS:', process.env.CORS_ALLOW_CREDENTIALS || 'false');
-} catch (e) {
-  console.log('Error logging CORS config:', e && e.message);
-}
 
 // Admin / debug endpoint: listar todas las flags (protegido)
 // Disponible si DEBUG_FLAGS=true o si se envía header x-admin-token igual a ADMIN_TOKEN
