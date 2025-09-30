@@ -40,11 +40,14 @@ function Modal({ open, onClose, children, width = '60vw', minWidth = 320, maxWid
 import { useState, useEffect, useRef } from 'react';
 // Determine API base URL.
 // In development (localhost) always use relative '/api/' to avoid CORS to production host.
+// Default to relative API path. In Vite dev mode prefer relative to avoid CORS to production.
 let API = '/api/';
 try {
   const configured = import.meta.env.VITE_API_URL;
+  const isDev = Boolean(import.meta.env.DEV);
   const isLocalhost = typeof window !== 'undefined' && window.location && /localhost|127\.0\.0\.1/.test(window.location.hostname);
-  if (!isLocalhost && configured) {
+  // Only use configured external API when not in dev and not running on localhost
+  if (!isDev && !isLocalhost && configured) {
     API = configured;
     if (API && !API.endsWith('/')) API = API + '/';
   }
