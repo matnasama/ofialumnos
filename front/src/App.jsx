@@ -40,6 +40,9 @@ function Modal({ open, onClose, children, width = '60vw', minWidth = 320, maxWid
 import { useState, useEffect, useRef } from 'react';
 let API = import.meta.env.VITE_API_URL;
 if (API && !API.endsWith('/')) API = API + '/';
+// Base para los JSON servidos desde el backend: si API está definido apunta a API + 'data/',
+// si no, usar la ruta absoluta '/data/' (asume que el backend sirve /data)
+const DATA_BASE = API ? API + 'data/' : '/data/';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import './App.css';
@@ -326,7 +329,7 @@ function App() {
     if (internosModalOpen) {
       setInternosLoading(true);
       setInternosError(null);
-      fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/internos.json')
+      fetch(`${DATA_BASE}internos.json`)
         .then(res => res.json())
         .then(data => {
           setInternosData(data);
@@ -437,7 +440,7 @@ function App() {
   useEffect(() => {
     if (auxiliaresModalOpen && !auxiliaresData && !auxiliaresLoading) {
       setAuxiliaresLoading(true);
-      fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/reportes_unm_auxiliares.json')
+      fetch(`${DATA_BASE}reportes_unm_auxiliares.json`)
         .then(res => res.json())
         .then(data => {
           setAuxiliaresData(data);
@@ -940,7 +943,7 @@ function App() {
                 setTramitesOpen(true);
                 setTramitesLoading(true);
                 setTramitesError(null);
-                fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/info/formularios.json')
+                fetch(`${DATA_BASE}info/formularios.json`)
                   .then(res => res.json())
                   .then(data => {
                     // Buscar el array tramites dentro del objeto
@@ -962,7 +965,7 @@ function App() {
                 setFormulariosOpen(true);
                 setFormulariosLoading(true);
                 setFormulariosError(null);
-                fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/info/formularios.json')
+                fetch(`${DATA_BASE}info/formularios.json`)
                   .then(res => res.json())
                   .then(data => {
                     setFormularios(data);
@@ -980,13 +983,12 @@ function App() {
                 setPlantillasError(null);
                 // Intentar fetch remoto; si falla usar fallback. Añadimos logs para
                 // ayudar a depurar problemas con la URL o la respuesta remota.
-                // Load plantillas from the repo's data.json (contains consultas)
-                const plantillasUrl = 'https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/data.json';
-                console.debug('Cargando plantillas desde', plantillasUrl);
-                fetch(plantillasUrl)
+                // Load plantillas from the backend-served data.json (contains consultas)
+                console.debug('Cargando plantillas desde', `${DATA_BASE}data.json`);
+                fetch(`${DATA_BASE}data.json`)
                   .then(res => {
                     if (!res.ok) {
-                      console.error('Fetch plantillas failed', plantillasUrl, res.status);
+                      console.error('Fetch plantillas failed', `${DATA_BASE}data.json`, res.status);
                       setPlantillasRemoteFailed(true);
                       throw new Error('No remote');
                     }
@@ -1014,7 +1016,7 @@ function App() {
                 setGrillasModalOpen(true);
                 setGrillasModalLoading(true);
                 setGrillasModalError(null);
-                fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/info/formularios.json')
+                fetch(`${DATA_BASE}info/formularios.json`)
                   .then(res => res.json())
                   .then(data => {
                     if (data && typeof data === 'object' && Array.isArray(data.bedelia)) {
@@ -1034,7 +1036,7 @@ function App() {
             {
               label: 'Bedelía',
               onClick: () => {
-                fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/info/formularios.json')
+                fetch(`${DATA_BASE}info/formularios.json`)
                   .then(res => res.json())
                   .then(data => {
                     if (data && typeof data === 'object' && Array.isArray(data.bedelia)) {
@@ -1059,7 +1061,7 @@ function App() {
                 setEnlacesModalOpen(true);
                 setEnlacesLoading(true);
                 setEnlacesError(null);
-                fetch('https://raw.githubusercontent.com/matnasama/buscador-de-aulas/refs/heads/main/public/json/enlaces.json')
+                fetch(`${DATA_BASE}enlaces.json`)
                   .then(res => res.json())
                   .then(data => {
                     setEnlacesData(data);

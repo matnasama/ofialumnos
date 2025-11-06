@@ -1,0 +1,133 @@
+{
+  "formularios": [
+    {
+      "nombre": "alumno inscripto coprun recup 2025- para completar.pdf",
+      "titulo": "alumno inscripto coprun recup 2025",
+      "url": "https://drive.google.com/file/d/1YGModsHXKRBM7vInE8ElVYt1AI6uQqbD/view?usp=drive_link"
+    },
+    {
+      "nombre": "alumno regular especifico.pdf",
+      "titulo": "alumno regular especifico",
+      "url": "https://drive.google.com/file/d/1ZtmB62j1dMmiAVSTFrqMazxQIzAXObxr/view?usp=drive_link"
+    },
+    {
+      "nombre": "f2 - certificado de examen.pdf",
+      "titulo": "f2 - certificado de examen",
+      "url": "https://drive.google.com/file/d/1tJIYUYAqDHc3RWzyKMeBFYWBVu57KeGM/view?usp=drive_link"
+    },
+    {
+      "nombre": "formulario de licencias.pdf",
+      "titulo": "formulario de licencias",
+      "url": "https://drive.google.com/file/d/1OWzOipiwb5s7BhKS_7mt7OucZMfQVv_q/view?usp=drive_link"
+    },
+    {
+      "nombre": "formulario alta de usuario.pdf",
+      "titulo": "formulario alta de usuario",
+      "url": "https://drive.google.com/file/d/14ehR4L8HmfJFC7RhdS4HS1LORkUTGBnS/view?usp=drive_link"
+    },
+    {
+      "nombre": "formulario alta sistemas de gestion.pdf",
+      "titulo": "formulario alta sistemas de gestion",
+      "url": "https://drive.google.com/file/d/1OCxnrvG8kLLQDsYSjCeWVnyLJXBSacJS/view?usp=drive_link"
+    },
+    {
+      "nombre": "formulario solicitud de equivalencias.pdf",
+      "titulo": "formulario solicitud de equivalencias",
+      "url": "https://drive.google.com/file/d/1Pk52yq_refwT74nxRra7eFiGkz16ZWST/view?usp=drive_link"
+    },
+    {
+      "nombre": "modif-datos-genero -no-registral.pdf",
+      "titulo": "modificacion de datos de genero no registral",
+      "url": "https://drive.google.com/file/d/1cWM-KR92e40neQFxo2OZOiEQZ0iDH0qq/view?usp=drive_link"
+    },
+    {
+      "nombre": "modif-datos-genero.pdf",
+      "titulo": "modificacion de datos genero",
+      "url": "https://drive.google.com/file/d/12iSBVln7RpQOZsjnC_4TtPLSmRrW4Ljx/view?usp=drive_link"
+    },
+    {
+      "nombre": "modificación-datos.pdf",
+      "titulo": "modificación de datos",
+      "url": "https://drive.google.com/file/d/1YMorHkwqU3lQpbm75NYTrVrNXThdjKxZ/view?usp=drive_link"
+    },
+    {
+      "nombre": "nota_para_ingresantes_art7 - nuevo.pdf",
+      "titulo": "nota para ingresantes art7",
+      "url": "https://drive.google.com/file/d/1zxIHM0erjDFvUd5EfuJE4hu_5AD1hLhy/view?usp=drive_link"
+    },
+    {
+      "nombre": "nota_para_la_solicitud_de_eximición_del_coprun - nuevo.pdf",
+      "titulo": "nota para la solicitud de eximición del coprun",
+      "url": "https://drive.google.com/file/d/1W9QJIOWUaRBatpAjCqtd1xCUAyOaXuIw/view?usp=drive_link"
+    }
+  ]
+  ,
+  "tramites": [
+    {
+      "nombre": "Solicitud de titulos",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/1NJ0U5hUxO32Dxe141yxRLANJHzgoXogxkf4MSHH5b2U/edit?gid=1229277479#gid=1229277479",
+      "formulario": "https://forms.gle/LibNsDSZnxcmsXUv9"
+    },
+    {
+      "nombre": "Cambio de institucion",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/1vhw_eXkmaC_NfCSadUv4aDA9Ti97zFVEHUfVgGWomPo/edit?gid=2043766057#gid=2043766057",
+      "formulario": "https://forms.gle/hGVD9xY4fu3KA3oW8"
+    },
+    {
+      "nombre": "Cambio/simultaneidad de carrera",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/1kPfT80iUlQc0blh8ZcYBHEhU8kxNgnTITpyjQyxA51k/edit?gid=1950064011#gid=1950064011",
+      "formulario": "https://forms.gle/2nEuygSB767QGjN19"
+    },
+    {
+      "nombre": "Estudiantes sin analitico",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/1LeZ9HxFV4yPuhKnN-cMS5Fbarr-e1ZORcfvMrOa-xC8/edit?gid=1205947732#gid=1205947732"
+    },
+    {
+      "nombre": "Estudiantes sin fotos",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/1sME60px2GIfR8xhZqtaNkd7vlM7RQs1fW4vh0VoRJWE/edit?gid=1205947732#gid=1205947732"
+    },
+    {
+      "nombre": "Solicitud de eximicion",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/16Xi5I6X-ngeXlVjyhzRMc4IV96v1PuefxZ3QkMS1T0Q/edit?gid=809197868#gid=809197868",
+      "formulario": "https://forms.gle/SDwGKa5MhaTPQsNj7"
+    },
+    {
+      "nombre": "Correo institucional",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/1jtweVUEms_qL4XusogHM4CpeDRn4xcRCA5JT2Byhc00/edit?gid=1932031335#gid=1932031335",
+      "formulario": "https://docs.google.com/forms/d/e/1FAIpQLSf9dZIMjBg9kDe6Brx_VZYR-vMcOKlKvTotTwo4nVjazj4u2w/viewform"
+    },
+    {
+      "nombre": "Trámite de equivalencias",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/11rKA_dek5sI1mg6yjuvg3QNqmvXMb3P_hrqKM5nEfCU/edit?gid=1393828240#gid=1393828240"
+    },
+    {
+      "nombre": "Solicitud de equivalencias",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/13-Pba7x59t7rDWlwMOo88KG9OjqLExOwlK8RlZEGZ3E/edit?gid=1841912448#gid=1841912448",
+      "formulario": "https://forms.gle/evRpvskzsTytFEdUA"
+    },
+    {
+      "nombre": "Solicitud de eximición del COPRUN",
+      "hoja_de_calculo": "https://docs.google.com/spreadsheets/d/16Xi5I6X-ngeXlVjyhzRMc4IV96v1PuefxZ3QkMS1T0Q/edit?gid=809197868#gid=809197868",
+      "formulario": "https://forms.gle/RvoKihFSBXnYH28h7"
+    }
+  ]
+  ,
+  "bedelia": [
+    {
+      "nombre": "aulas",
+      "url": "https://docs.google.com/spreadsheets/d/1vQKtE9A_x1Gy4Cz7uA0hAS8J9k09VyqA/edit?gid=190423834#gid=190423834"
+    },
+    {
+      "nombre": "grilla dcayt",
+      "url": "https://docs.google.com/spreadsheets/d/1TK_osf_Fv3h6Z3LgiTRlPV1bnD_1EmN5/edit?gid=1210978255#gid=1210978255"
+    },
+    {
+      "nombre": "grilla dceyj",
+      "url": "https://docs.google.com/spreadsheets/d/12_XqQDfnswLA6rrKGztgb_R0O5Kmcw6o/edit?gid=417610937#gid=417610937"
+    },
+    {
+      "nombre": "grilla dhycs",
+      "url": "https://docs.google.com/spreadsheets/d/1vcwk087Q9z71oMdQwIWmf7BviEptxHz7/edit?gid=83667551#gid=83667551"
+    }
+  ]
+}

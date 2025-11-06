@@ -1,21 +1,35 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { Pool } = require('pg');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Servir JSON estáticos desde /data con cacheo de 1 hora
+app.use('/data', express.static(path.join(__dirname, 'data'), { maxAge: '1h' }));
 
-const pool = new Pool({
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
-  channelBinding: process.env.PGCHANNELBINDING || undefined
-});
+
+// Create a Postgres pool with global reuse to avoid too many connections
+// in serverless environments (attach to globalThis so it survives module
+// reloads during warm invocations).
+function createPool() {
+  if (global.__pgPool) return global.__pgPool;
+  const p = new Pool({
+    host: process.env.PGHOST,
+    database: process.env.PGDATABASE,
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
+    channelBinding: process.env.PGCHANNELBINDING || undefined
+  });
+  global.__pgPool = p;
+  return p;
+}
+
+const pool = createPool();
 
 // Importar y montar el router de login
 const loginRouter = require('./api/login');
@@ -165,7 +179,15 @@ activitiesRouter.get('/:id/history', async (req, res) => {
 // Montar el router de activities en /api/activities
 app.use('/api/activities', activitiesRouter);
 
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`Servidor backend escuchando en puerto ${PORT}`);
-});
+// If running in a serverless environment (like Vercel) we should NOT call
+// app.listen - instead export the app and let the platform invoke it as a
+// handler. When running locally (dev) we still listen on a port.
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Servidor backend escuchando en puerto ${PORT}`);
+  });
+}
+
+// Export app so serverless platforms (Vercel) can require it.
+module.exports = app;
